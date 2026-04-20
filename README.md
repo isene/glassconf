@@ -1,8 +1,12 @@
 # glassconf - TUI Config for glass
 
+<img src="img/glassconf.svg" align="left" width="150" height="150">
+
 ![Version](https://img.shields.io/badge/version-0.1.0-blue) ![Rust](https://img.shields.io/badge/language-Rust-f74c00) ![License](https://img.shields.io/badge/license-Unlicense-green) ![Platform](https://img.shields.io/badge/platform-Linux-blue) ![Dependencies](https://img.shields.io/badge/dependencies-crust-blue)
 
 TUI configuration tool for the [glass](https://github.com/isene/glass) terminal emulator, built on [crust](https://github.com/isene/crust). Live-preview pane shows what the prompt will look like as you tweak colors.
+
+<br clear="left"/>
 
 ## Features
 
