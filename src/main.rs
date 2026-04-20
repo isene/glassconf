@@ -25,6 +25,7 @@ enum ItemKind {
     Number(u32, u32, u32),                  // value, min, max
     BgCycle(Vec<String>),                   // list of hex strings
     Toggle(bool, &'static str, &'static str), // (on, on_str, off_str)
+    Keybind(String),                        // free-form like "alt+plus"
     Theme,
 }
 
@@ -106,6 +107,18 @@ impl App {
                 Item { label: "Cycle list".into(), key: "bg_cycle",
                        kind: ItemKind::BgCycle(DEFAULT_BG_CYCLE.split(',').map(|s| s.trim().to_string()).collect()) },
             ]},
+            Category { name: "Keybindings".into(), items: vec![
+                Item { label: "Font size +".into(), key: "key.font_inc",
+                       kind: ItemKind::Keybind("alt+plus".into()) },
+                Item { label: "Font size -".into(), key: "key.font_dec",
+                       kind: ItemKind::Keybind("alt+minus".into()) },
+                Item { label: "Font reset".into(), key: "key.font_reset",
+                       kind: ItemKind::Keybind("alt+underscore".into()) },
+                Item { label: "BG cycle".into(),   key: "key.bg_cycle",
+                       kind: ItemKind::Keybind("alt+b".into()) },
+                Item { label: "Opacity toggle".into(), key: "key.opacity",
+                       kind: ItemKind::Keybind("alt+t".into()) },
+            ]},
         ];
     }
 
@@ -137,6 +150,7 @@ impl App {
                                     .filter(|s| !s.is_empty()).collect();
                         }
                         ItemKind::Toggle(on, on_str, _) => { *on = val == *on_str; }
+                        ItemKind::Keybind(s) => { *s = val.to_string(); }
                         _ => {}
                     }
                 }
@@ -157,6 +171,9 @@ impl App {
                     }
                     ItemKind::Toggle(on, on_str, off_str) => {
                         out += &format!("{} = {}\n", item.key, if *on { on_str } else { off_str });
+                    }
+                    ItemKind::Keybind(s) => {
+                        out += &format!("{} = {}\n", item.key, s);
                     }
                     ItemKind::Theme => {}
                 }
@@ -262,6 +279,9 @@ impl App {
                 }
                 ItemKind::Toggle(on, on_str, off_str) => {
                     if *on { style::fg(on_str, 82) } else { style::fg(off_str, 245) }
+                }
+                ItemKind::Keybind(s) => {
+                    if s.is_empty() { style::fg("(disabled)", 245) } else { style::fg(s, 81) }
                 }
                 ItemKind::Theme => style::fg(THEME_NAMES[self.theme_idx], 220),
             };
@@ -378,6 +398,7 @@ impl App {
                 ItemKind::FontSize(i) => FONT_SIZES[*i].to_string(),
                 ItemKind::Number(v, _, _) => v.to_string(),
                 ItemKind::BgCycle(v) => v.join(","),
+                ItemKind::Keybind(s) => s.clone(),
                 ItemKind::Theme | ItemKind::Toggle(_, _, _) => return self.next_value(),
             };
             (item.label.clone(), init)
@@ -418,6 +439,7 @@ impl App {
                     .collect();
                 if !parsed.is_empty() { *v = parsed; self.dirty = true; }
             }
+            ItemKind::Keybind(s) => { *s = new_val.to_lowercase(); self.dirty = true; }
             ItemKind::Theme | ItemKind::Toggle(_, _, _) => {}
         }
         let _ = key;
