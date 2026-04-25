@@ -179,7 +179,7 @@ impl App {
                 }
             }
         }
-        let _ = std::fs::write(&self.config_path, out);
+        atomic_write(&self.config_path, out.as_bytes());
     }
 
     // --- helpers ----------------------------------------------------
@@ -444,6 +444,20 @@ impl App {
         }
         let _ = key;
     }
+}
+
+// Atomic file replace: write PATH.tmp, rename PATH→PATH.bak, rename
+// PATH.tmp→PATH. Guarantees the target file is never empty/truncated
+// even if killed mid-save; PATH.bak holds the previous good copy.
+fn atomic_write(path: &std::path::Path, data: &[u8]) {
+    use std::ffi::OsString;
+    let mut tmp: OsString = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    let mut bak: OsString = path.as_os_str().to_owned();
+    bak.push(".bak");
+    if std::fs::write(&tmp, data).is_err() { return; }
+    let _ = std::fs::rename(path, &bak);
+    let _ = std::fs::rename(&tmp, path);
 }
 
 fn parse_hex(hex: &str) -> Option<(u8, u8, u8)> {
