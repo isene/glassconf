@@ -36,14 +36,19 @@ cargo build --release
 
 The binary lands at `target/release/glassconf`.
 
-## Part of the CHasm Suite
+## Part of the [CHasm](https://github.com/isene/chasm) Suite
 
 | Tool | Purpose |
 |------|---------|
-| [bare](https://github.com/isene/bare) | Shell (assembly) |
-| [show](https://github.com/isene/show) | File viewer (assembly) |
-| [glass](https://github.com/isene/glass) | Terminal emulator (assembly) |
-| **glassconf** | **Config TUI (Rust)** |
+| [bare](https://github.com/isene/bare)         | Shell (assembly) |
+| [glass](https://github.com/isene/glass)       | Terminal emulator (assembly) |
+| [tile](https://github.com/isene/tile)         | Window manager + strip status bar (assembly) |
+| [show](https://github.com/isene/show)         | File viewer (assembly) |
+| [chasm-bits](https://github.com/isene/chasm-bits) | Asmite helpers fed into strip (assembly) |
+| [bareconf](https://github.com/isene/bareconf) | Config TUI for bare (Rust) |
+| **glassconf**                                 | **Config TUI for glass (Rust)** |
+| [tileconf](https://github.com/isene/tileconf) | Config TUI for tile (Rust) |
+| [stripconf](https://github.com/isene/stripconf) | Config TUI for strip (Rust) |
 
 ## License
 
