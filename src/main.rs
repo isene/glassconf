@@ -102,6 +102,7 @@ impl App {
             Category { name: "Window".into(), items: vec![
                 Item { label: "Opacity (%)".into(),     key: "opacity",      kind: ItemKind::Number(100, 0, 100) },
                 Item { label: "Cursor blink (ms)".into(), key: "cursor_blink", kind: ItemKind::Number(0, 0, 2000) },
+                Item { label: "Unfocused dim (%)".into(), key: "unfocused_dim", kind: ItemKind::Number(0, 0, 100) },
             ]},
             Category { name: "BG Cycle".into(), items: vec![
                 Item { label: "Cycle list".into(), key: "bg_cycle",
