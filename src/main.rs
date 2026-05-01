@@ -52,6 +52,14 @@ struct App {
     theme_idx: usize,
     dirty: bool,
     config_path: PathBuf,
+    // Verbatim copy of the .glassrc as we last read it. save_config()
+    // walks these lines and replaces values for keys we manage; every
+    // other line (comments, blanks, `font_path = …`, color0..color15,
+    // future keys glass adds before glassconf catches up) gets emitted
+    // unchanged. Without this we silently dropped every line the
+    // categories struct didn't recognise — exactly how `font_path`
+    // disappeared from a user's .glassrc and broke their TTF rendering.
+    original_text: String,
 }
 
 impl App {
@@ -75,6 +83,7 @@ impl App {
             theme_idx: 0,
             dirty: false,
             config_path,
+            original_text: String::new(),
         };
         app.left.border = true;
         app.right.border = true;
@@ -127,6 +136,7 @@ impl App {
         let content = match std::fs::read_to_string(&self.config_path) {
             Ok(c) => c, Err(_) => return,
         };
+        self.original_text = content.clone();
         for line in content.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') { continue; }
@@ -160,27 +170,98 @@ impl App {
     }
 
     fn save_config(&self) {
-        let mut out = String::from("# glass config — managed by glassconf\n");
+        // Walk the original .glassrc verbatim. For each line:
+        //   • comment, blank, malformed → preserve as-is
+        //   • `key = value` for a key we manage → rewrite value
+        //   • `key = value` for an unknown key → preserve as-is
+        // Any managed key the file didn't already contain is appended
+        // at the end. Result: round-tripping never drops a line, and
+        // glass features glassconf doesn't yet know about (font_path,
+        // color0..color15, future additions) survive a save.
+        let mut out = String::new();
+        let mut written = std::collections::HashSet::new();
+        let had_input = !self.original_text.is_empty();
+        for line in self.original_text.lines() {
+            let trimmed = line.trim_start();
+            let leading_ws = &line[..line.len() - trimmed.len()];
+            if trimmed.is_empty() || trimmed.starts_with('#') {
+                out.push_str(line);
+                out.push('\n');
+                continue;
+            }
+            let Some((k, _)) = trimmed.split_once('=') else {
+                out.push_str(line);
+                out.push('\n');
+                continue;
+            };
+            let key = k.trim();
+            if let Some(rendered) = self.serialize_managed(key) {
+                out.push_str(leading_ws);
+                out.push_str(&rendered);
+                out.push('\n');
+                written.insert(key.to_string());
+            } else if self.is_managed_key(key) {
+                // Managed key whose current value renders to nothing
+                // (BgCycle cleared to empty list, Theme pseudo-key):
+                // drop the line so the file matches in-memory state.
+                written.insert(key.to_string());
+            } else {
+                out.push_str(line);
+                out.push('\n');
+            }
+        }
+        if !had_input {
+            out = String::from("# glass config — managed by glassconf\n");
+        }
+        let mut appended = false;
         for cat in &self.categories {
             for item in &cat.items {
-                match &item.kind {
-                    ItemKind::HexColor(s)  => out += &format!("{} = {}\n", item.key, s),
-                    ItemKind::FontSize(i)  => out += &format!("{} = {}\n", item.key, FONT_SIZES[*i]),
-                    ItemKind::Number(v, _, _) => out += &format!("{} = {}\n", item.key, v),
-                    ItemKind::BgCycle(v)   => {
-                        if !v.is_empty() { out += &format!("{} = {}\n", item.key, v.join(",")); }
-                    }
-                    ItemKind::Toggle(on, on_str, off_str) => {
-                        out += &format!("{} = {}\n", item.key, if *on { on_str } else { off_str });
-                    }
-                    ItemKind::Keybind(s) => {
-                        out += &format!("{} = {}\n", item.key, s);
-                    }
-                    ItemKind::Theme => {}
+                if written.contains(item.key) { continue; }
+                let Some(rendered) = self.serialize_managed(item.key) else { continue };
+                if !appended && had_input {
+                    out.push_str("\n# Added by glassconf\n");
+                    appended = true;
                 }
+                out.push_str(&rendered);
+                out.push('\n');
             }
         }
         atomic_write(&self.config_path, out.as_bytes());
+    }
+
+    // Render a managed key as "key = value", or None if the kind
+    // doesn't serialise (Theme is a pseudo-item; BgCycle with no
+    // entries renders to nothing so the file omits the line).
+    fn serialize_managed(&self, key: &str) -> Option<String> {
+        for cat in &self.categories {
+            for item in &cat.items {
+                if item.key != key { continue; }
+                return match &item.kind {
+                    ItemKind::HexColor(s)  => Some(format!("{} = {}", item.key, s)),
+                    ItemKind::FontSize(i)  => Some(format!("{} = {}", item.key, FONT_SIZES[*i])),
+                    ItemKind::Number(v, _, _) => Some(format!("{} = {}", item.key, v)),
+                    ItemKind::BgCycle(v) => {
+                        if v.is_empty() { None }
+                        else { Some(format!("{} = {}", item.key, v.join(","))) }
+                    }
+                    ItemKind::Toggle(on, on_str, off_str) => {
+                        Some(format!("{} = {}", item.key, if *on { on_str } else { off_str }))
+                    }
+                    ItemKind::Keybind(s) => Some(format!("{} = {}", item.key, s)),
+                    ItemKind::Theme => None,
+                };
+            }
+        }
+        None
+    }
+
+    fn is_managed_key(&self, key: &str) -> bool {
+        for cat in &self.categories {
+            for item in &cat.items {
+                if item.key == key { return true; }
+            }
+        }
+        false
     }
 
     // --- helpers ----------------------------------------------------

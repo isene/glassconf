@@ -1,6 +1,6 @@
 [package]
 name = "glassconf"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "TUI configuration tool for the glass terminal emulator"
 authors = ["Geir Isene <g@isene.com>"]
