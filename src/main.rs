@@ -307,7 +307,7 @@ impl App {
         let fg = self.current_color("fg").unwrap_or("#ffffff").to_string();
         let cursor = self.current_color("cursor").unwrap_or("#f7768e").to_string();
         let preview = format!(" {}{}{}",
-            Self::bg24(&Self::fg24(" geir@juba: ~/ ", &fg), &bg),
+            Self::bg24(&Self::fg24(" user@host: ~/ ", &fg), &bg),
             Self::bg24(&Self::fg24(">", &cursor), &bg),
             Self::bg24(" ", &bg));
         self.top.say(&format!(" glassconf{}    preview:{}", dirty_mark, preview));
@@ -377,7 +377,7 @@ impl App {
         lines.push(String::new());
         lines.push(style::fg("Live preview:", 245));
         let l1 = format!("{}{}{}",
-            Self::bg24(&Self::fg24(" geir@juba: ~/projects ", &fg), &bg),
+            Self::bg24(&Self::fg24(" user@host: ~/projects ", &fg), &bg),
             Self::bg24(&Self::fg24(">", &cursor), &bg),
             Self::bg24(" ", &bg));
         let l2 = Self::bg24(&format!("{:<60}", " ls -la | grep glass"), &bg);
